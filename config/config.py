@@ -13,15 +13,15 @@ class Config(dict):
 def get_config_dict():
     dataset_info = dict(
         pretrained_name='gogamza/kobart-base-v1',
-        train_file='/storage/hjchoi/data_dacon/train.tsv',
-        test_file='/storage/hjchoi/data_dacon/test.tsv',
+        train_file='/storage/hjchoi/Document_Summary_text/Training/law.tsv',
+        test_file='/storage/hjchoi/Document_Summary_text/Training/law.tsv',
         batch_size=10,
         max_len=512,
-        max_epoch=10,
-        num_workers=0,
+        max_epoch=50,
+        num_workers=4,
     )
     path = dict(
-        save_base_path = '/home/hjchoi/PycharmProjects/KoBART/runs',
+        save_base_path='/home/hjchoi/PycharmProjects/KoBART-for-summary/runs',
     )
     model = dict(
         name='BART',
@@ -31,15 +31,15 @@ def get_config_dict():
         lr=3e-4,
         gradient_clip_val=1.0
     )
-    scheduler=dict(
+    scheduler = dict(
         monitor='loss',
         interval='step',
         accelerator='gpu',
         frequency=1,
-        mode='min'
     )
-    weight_info=dict(
-        checkpoint='./checkpoint',
+    weight_info = dict(
+        mode='min',
+        checkpoint='./checkpoint/',
         save_fname='model_chp/{epoch:02d}-{val_loss:.3f}',
     )
     device=dict(

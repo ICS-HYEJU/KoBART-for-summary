@@ -12,8 +12,8 @@ from transformers import PreTrainedTokenizerFast
 import sentencepiece as spm
 
 def split_file():
-    path = '/storage/hjchoi/Document_Summary_text/Training/law_train_original/train_original.json'
-    make_path = '/storage/hjchoi/Document_Summary_text/Training/law_train_split/'
+    path = '/storage/hjchoi/Document_Summary_text/Training/magazine_train_original/train_original.json'
+    make_path = '/storage/hjchoi/Document_Summary_text/Training/magazine_train_split/'
     with open(path, 'r') as f:
         json_file = json.load(f)
         doc = json_file['documents']
@@ -57,12 +57,11 @@ def split_file():
 def json_to_pandas():
     from config.config import get_config_dict
     cfg = get_config_dict()
-    tokenizer = PreTrainedTokenizerFast.from_pretrained(cfg.dataset_info['pretrained_name'])
     origin = []
     summary = []
 
     #
-    for jf in tqdm(range(243983), desc='Remake data[text]', mininterval=0.01):
+    for jf in tqdm(range(24329), desc='Remake data[text]', mininterval=0.01):
         path = '/storage/hjchoi/Document_Summary_text/Training/news_train_split/'
         with open(path+str(jf)+'.json', 'r') as f:
             data = json.load(f)

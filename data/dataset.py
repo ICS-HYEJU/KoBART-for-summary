@@ -5,7 +5,7 @@ import lightning as L
 
 
 class KoBARTSummaryDataset(L.LightningDataModule):
-    def __init__(self, file, tokenizer, max_len, ignore_index = -100):
+    def __init__(self, file, tokenizer, max_len, ignore_index=-100):
         super().__init__()
         #
         self.tokenizer = tokenizer
@@ -22,7 +22,7 @@ class KoBARTSummaryDataset(L.LightningDataModule):
         instance = self.docs.iloc[idx]
 
         # input_ids = Integer(data['news']) + Padding
-        input_ids = self.tokenizer.encode(instance['news'])
+        input_ids = self.tokenizer.encode(instance['text'])
         input_ids = self.add_padding_data(input_ids)
 
         # label_ids = Integer(data['summary']) + [EOS] token
@@ -34,7 +34,7 @@ class KoBARTSummaryDataset(L.LightningDataModule):
         dec_input_ids += label_ids[:-1]
         dec_input_ids = self.add_padding_data(dec_input_ids)
 
-        # add noise token to labe_ids
+        # add noise token to label_ids
         label_ids = self.add_ignored_data(label_ids)
 
         return {'input_ids': np.array(input_ids,dtype=np.int_),
@@ -61,5 +61,3 @@ class KoBARTSummaryDataset(L.LightningDataModule):
         else:
             inputs = inputs[:self.max_len]
         return inputs
-
-

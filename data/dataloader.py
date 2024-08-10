@@ -25,8 +25,8 @@ class KobartSummaryDataModule(L.LightningDataModule):
                                               max_len=self.max_len,
                                               tokenizer=self.tok)
             self.val = KoBARTSummaryDataset(self.test_file_path,
-                                            max_len=self.max_len,
-                                            tokenizer=self.tok)
+                                             max_len=self.max_len,
+                                             tokenizer=self.tok)
         elif stage == 'test':
             self.test = KoBARTSummaryDataset(self.test_file_path,
                                             max_len=self.max_len,
