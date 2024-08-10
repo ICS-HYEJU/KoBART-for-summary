@@ -2,7 +2,7 @@ import torch
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 from transformers import BartForConditionalGeneration
 import lightning as L
-
+from lightning.pytorch.loggers import TensorBoardLogger
 
 class KoBARTGeneration(L.LightningModule):
     def __init__(self, config, tok):
@@ -19,6 +19,7 @@ class KoBARTGeneration(L.LightningModule):
         #
         self.outputs = []
 
+
     def forward(self,inputs):
         attn_mask = inputs['input_ids'].ne(self.pad_token_id).float()
         decoder_attn_mask = inputs['dec_input_ids'].ne(self.pad_token_id).float()
@@ -30,20 +31,21 @@ class KoBARTGeneration(L.LightningModule):
                           labels=inputs['label_ids'].to(self.device),
                           return_dict=True)
 
-    def training_step(self, batch,batch_idx):
+    def training_step(self, batch, batch_idx):
         outs = self.forward(batch)
         loss = outs.loss
-        self.log('train_loss', loss, prog_bar=True)
+        self.log('train_loss', loss, on_step=True, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         outs = self(batch)
         loss = outs['loss']
+        self.log('val_loss', loss, prog_bar=True)
         self.outputs.append({"loss": loss})
 
     def on_validation_epoch_end(self):
         loss = torch.stack([x["loss"] for x in self.outputs]).mean()
-        self.log("val_loss", loss, prog_bar=True)
+        # self.log("val_loss", loss, prog_bar=True)
         self.outputs.clear()
         return {'avg_val_loss': loss}
 
@@ -86,7 +88,7 @@ class KoBARTGeneration(L.LightningModule):
         )
         lr_scheduler = {'scheduler': scheduler,
                         'monitor': self.cfg.scheduler['monitor'],
-                        'interval': self.cfg.scheduler['interval'],
+                        'interval': self.cfg.scheduler['interval'],     # called after each training step
                         'frequency': self.cfg.scheduler['frequency']}
 
         return [optimizer], [lr_scheduler]
