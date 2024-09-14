@@ -14,7 +14,7 @@ class Engine():
         self.device = device
 
         # ===== Save Path =====
-        self.save_path = self.make_save_path()
+        # self.save_path = self.make_save_path()
 
         # ===== DataLoader =====
         self.dataloader = self.get_dataloader()
@@ -23,14 +23,14 @@ class Engine():
         self.model = self.build_model()
 
         # ===== Make CheckPoint =====
-        self.checkpoint = self.build_checkpoint()
+        self.val_checkpoint = self.build_checkpoint()
 
     def build_model(self):
         name = self.cfg.model['name']
         if name == 'BART':
             from model.bart import KoBARTGeneration
             tok = PreTrainedTokenizerFast.from_pretrained(self.cfg.dataset_info['pretrained_name'])
-            model = KoBARTGeneration(config=self.cfg, tok=tok)
+            model = KoBARTGeneration(config=self.cfg, tok=tok, mode=self.mode)
         else:
             raise NotImplementedError(f"The required model is not implemented yet...")
         return model.to(self.device)
@@ -52,33 +52,38 @@ class Engine():
         elif self.mode == 'predict':
             datamodule.setup('predict')
         else:
-            raise ValueError(f'mode {self.mode} is invalid...[train \| test \| predict]')
+            raise ValueError(f'mode {self.mode} is invalid...[fit \| test \| predict]')
 
         return datamodule
 
-    def make_save_path(self):
-        save_pretrain = os.path.join(self.cfg.path['save_base_path'],
-                                     self.cfg.model['name'] + "_pretrain")
-        os.makedirs(save_pretrain, exist_ok=True)
-        return save_pretrain
 
     def build_checkpoint(self):
-        checkpoint_callback = ModelCheckpoint(
-            monitor='train_loss',
+        # train_checkpoint_callback = ModelCheckpoint(
+        #     monitor='train_loss',
+        #     dirpath=self.cfg.weight_info['checkpoint'],
+        #     filename=self.cfg.weight_info['save_train'],
+        #     mode=self.cfg.weight_info['mode'],
+        #     verbose=True,
+        #     save_last=True,
+        #     save_top_k=5,
+        #     every_n_train_steps=100)
+        #
+        val_checkpoint_callback = ModelCheckpoint(
+            monitor='val_loss',
             dirpath=self.cfg.weight_info['checkpoint'],
-            filename=self.cfg.weight_info['save_fname'],
+            filename=self.cfg.weight_info['save_val'],
             mode=self.cfg.weight_info['mode'],
             verbose=True,
             save_last=True,
-            save_top_k=-1)
-        return checkpoint_callback
+            save_top_k=3,)
+        return val_checkpoint_callback
 
     def start_train(self):
         trainer = L.Trainer(max_epochs=self.cfg.dataset_info['max_epoch'],
                             accelerator=self.cfg.scheduler['accelerator'],
                             devices=[self.cfg.device['gpu_id']],
                             gradient_clip_val=self.cfg.solver['gradient_clip_val'],
-                            callbacks=[self.checkpoint],
+                            callbacks=[self.val_checkpoint],
                             accumulate_grad_batches=3,
                             )
         if self.mode=='fit':
