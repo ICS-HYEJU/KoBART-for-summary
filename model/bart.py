@@ -5,7 +5,7 @@ import lightning as L
 from lightning.pytorch.loggers import TensorBoardLogger
 
 class KoBARTGeneration(L.LightningModule):
-    def __init__(self, config, tok):
+    def __init__(self, config, tok, mode):
         super().__init__()
         #
         self.cfg = config
@@ -13,12 +13,26 @@ class KoBARTGeneration(L.LightningModule):
         self.eos_token = '</s>'
         self.pad_token_id = tok.pad_token_id
         self.tok = tok
+        self.mode = mode
         #
-        self.model = BartForConditionalGeneration.from_pretrained(config.dataset_info['pretrained_name'])
-        self.model.train()
+        self.pretrained_path = 'gogamza/kobart-base-v1'
+        self.model = BartForConditionalGeneration.from_pretrained(pretrained_model_name_or_path=self.pretrained_path)
+        self.model.generate()
+        if self.mode == "fit":
+            self.model.train()
+        else:
+            self.model.eval()
+
         #
         self.outputs = []
 
+    @classmethod
+    def load_from_checkpoint(cls, path, config, tok, mode):
+        model = BartForConditionalGeneration.from_pretrained(config.dataset_info['pretrained_name'])
+        checkpoint = torch.load(path, map_location=device)
+        new_state_dict = {k.replace('model.', '', 1): v for k, v in checkpoint['state_dict'].items()}
+        model.load_state_dict(new_state_dict)
+        return cls(model, tok, mode)
 
     def forward(self,inputs):
         attn_mask = inputs['input_ids'].ne(self.pad_token_id).float()
@@ -40,33 +54,14 @@ class KoBARTGeneration(L.LightningModule):
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         outs = self(batch)
         loss = outs['loss']
-        self.log('val_loss', loss, prog_bar=True)
-        self.outputs.append({"loss": loss})
+        self.log('val_loss', loss, on_step=True, prog_bar=True)
+        self.outputs.append({"val_loss": loss})
 
     def on_validation_epoch_end(self):
-        loss = torch.stack([x["loss"] for x in self.outputs]).mean()
-        # self.log("val_loss", loss, prog_bar=True)
+        loss = torch.stack([x["val_loss"] for x in self.outputs]).mean()
+        # self.log("val_epoch_loss", loss, prog_bar=True)
         self.outputs.clear()
         return {'avg_val_loss': loss}
-
-    def inference(self, input_text):
-        print("KoBART Summary Test")
-        print("## origin NEWS data: ")
-        print(input_text)
-
-        if input_text:
-            text = input_text.replace('\n', '')
-            raw_input_ids = self.tok.encode(text)
-            #
-            input_idx = [self.tok.bos_token_id] + raw_input_ids + [self.tok.eos_token_id]
-            #
-            input_ids = torch.tensor([input_idx])
-            summary_ids = self.model.generate(input_ids,
-                                              eos_token_id=self.tok.eos_token_id,
-                                              max_length=self.config.max_len,
-                                              num_beams=4)
-            output = self.tok.decode(summary_ids.squeeze().tolist(), skip_special_tokens=True)
-            print(output)
 
     def configure_optimizers(self):
         # Prepare optimizer
@@ -93,3 +88,45 @@ class KoBARTGeneration(L.LightningModule):
 
         return [optimizer], [lr_scheduler]
 
+    def inference(self, input_text):
+        print("KoBART Summary Test")
+        print("## origin NEWS data: ")
+        print(input_text)
+
+        if input_text:
+            text = input_text.replace('\n', '')
+            raw_input_ids = self.tok.encode(text)
+            #
+            input_ids = [self.tok.bos_token_id] + raw_input_ids + [self.tok.eos_token_id]
+            #
+            input_ids = torch.tensor([input_ids])
+            summary_ids = self.model.generate(input_ids,
+                                         eos_token_id=self.tok.eos_token_id,
+                                         max_length=512,
+                                         num_beams=4)
+            output = self.tok.decode(summary_ids.squeeze().tolist(), skip_special_tokens=True)
+            print(output)
+            import json
+            with open('/storage/hjchoi/output_m.txt', 'w', encoding='UTF-8') as f:
+                    f.write(json.dumps(output, ensure_ascii=False))
+
+
+if __name__ == '__main__':
+    from transformers import PreTrainedTokenizerFast
+    from config.config import get_config_dict
+    cfg = get_config_dict()
+    tok = PreTrainedTokenizerFast.from_pretrained('gogamza/kobart-base-v1')
+    if cfg.device['gpu_id'] is not None:
+        device = torch.device('cuda:{}'.format(cfg.device['gpu_id']))
+        torch.cuda.set_device(cfg.device['gpu_id'])
+    else:
+        device = torch.device('cpu')
+    #
+    chp_path = '/home/hjchoi/PycharmProjects/KoBART-for-summary/checkpoint/model_chp/magazine/epoch=00-val_loss=1.962.ckpt'
+    model = KoBARTGeneration.load_from_checkpoint(path=chp_path, config=cfg, tok=tok, mode='test')
+    #
+    test_path = '/storage/hjchoi/Document_Summary_text/Inference/test.txt'
+    f = open(test_path, 'r')
+    line = f.read()
+    #
+    model.inference(line)
