@@ -8,6 +8,7 @@
    |------|----------|
    | 원문 | 생성요약 label |
 * 데이터 정제 시, 다음과 같은 유의사항이 존재
-     *  생성요약 label인 abstractive가 None인 데이터 존재
-
-        (
+     *  생성요약 label 'abstractive' 및 추출요약 label 'extractive'에 None인 데이터 존재
+     *  데이터 내 원문인 'text'는 문단을 나타내는 list 내 sentence를 담은 list가 존재하는 2중 list 구조로,
+        text list의 index 번호와 sentence의 index값이 상이함.
+        
