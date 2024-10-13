@@ -6,4 +6,8 @@
 * Data 구조
    | text | summary |
    |------|----------|
-   | 원문 |생성요약 label|
+   | 원문 | 생성요약 label |
+* 데이터 정제 시, 다음과 같은 유의사항이 존재
+     *  생성요약 label인 abstractive가 None인 데이터 존재
+
+        (
