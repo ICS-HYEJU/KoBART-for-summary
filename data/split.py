@@ -12,14 +12,18 @@ from transformers import PreTrainedTokenizerFast
 import sentencepiece as spm
 
 def split_file():
-    path = '/storage/hjchoi/Document_Summary_text/Training/magazine_train_original/train_original.json'
-    make_path = '/storage/hjchoi/Document_Summary_text/Training/magazine_train_split/'
+    path = '/storage/hjchoi/Document_Summary_text/Validation/magazine_valid_original/valid_original.json'
+    make_path = '/storage/hjchoi/Document_Summary_text/Validation/magazine_valid_split/'
     with open(path, 'r') as f:
         json_file = json.load(f)
         doc = json_file['documents']
-        for i in range(len(doc)):
-            with open(make_path + str(i) + '.json', 'w', encoding='UTF-8') as f:
-                f.write(json.dumps(doc[i], ensure_ascii=False))
+        for i in tqdm(range(len(doc)),desc='splitting and delete None abstractive data'):
+            if doc[i]['abstractive'][0] == "":
+                print(f"i:{i} , abstractive : {doc[i]['abstractive']}")
+                continue
+            else:
+                with open(make_path + str(i) + '.json', 'w', encoding='UTF-8') as f:
+                    f.write(json.dumps(doc[i], ensure_ascii=False))
 
 # We can use this function as a getitem function.
 # Remove Stopwords
@@ -59,13 +63,19 @@ def json_to_pandas():
     cfg = get_config_dict()
     origin = []
     summary = []
-
+    index=[]
     #
-    for jf in tqdm(range(24329), desc='Remake data[text]', mininterval=0.01):
-        path = '/storage/hjchoi/Document_Summary_text/Training/news_train_split/'
+    for jf in tqdm(range(7008), desc='Remake data[text]', mininterval=0.01):
+        path = '/storage/hjchoi/Document_Summary_text/Validation/magazine_valid_split/'
+        if jf == 1187:
+            jf += 1
         with open(path+str(jf)+'.json', 'r') as f:
             data = json.load(f)
+            if data['abstractive'] is None:
+                print(f'{jf}.json file does not contain abstractive')
+                print(data['abstractive'])
             text = list(itertools.chain(*data['text']))
+
             # remove stopwords
             line = ''
             for id in tqdm(range(len(text)), desc="remove stopwords from origin", mininterval=0.01):
@@ -73,11 +83,16 @@ def json_to_pandas():
                 for i, v in enumerate(text[id]['sentence']):
                     if str(i) in stop_idx:
                         continue
+
                     line += v
             origin.append(line)
             summary.append(data['abstractive'][0])
-    df = pd.DataFrame({'text':origin,'summary':summary})
-    df.to_csv('/storage/hjchoi/Document_Summary_text/Training/news.tsv', sep='\t', index=False)
+            index.append(data['id'])
+
+    df = pd.DataFrame({'id':index, 'text':origin,'summary':summary})
+    # Remove None value
+    df.dropna(how='any', inplace=True)
+    df.to_csv('/storage/hjchoi/Document_Summary_text/Validation/magazine.tsv', sep='\t', index=False)
     time.sleep(0.1)
 
 if __name__ == '__main__':

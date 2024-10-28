@@ -8,7 +8,7 @@ from data.dataset import KoBARTSummaryDataset
 
 class KobartSummaryDataModule(L.LightningDataModule):
     def __init__(self, train_file, test_file, max_len=512, batch_size=8, num_workers=0,
-                 pretrained_name='gogamza/kobart-base-v1'):
+                 pretrained_name='digit82/kobart-summarization'):
         super().__init__()
         #
         self.bs = batch_size
@@ -39,7 +39,7 @@ class KobartSummaryDataModule(L.LightningDataModule):
             raise ValueError(f'stage {stage} is invalid...[train \| test \| predict]')
 
     def train_dataloader(self):
-        train = DataLoader(self.train, batch_size=self.bs, num_workers=self.num_workers)
+        train = DataLoader(self.train, batch_size=self.bs, num_workers=self.num_workers, shuffle=False)
         return train
 
     def val_dataloader(self):

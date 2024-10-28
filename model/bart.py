@@ -15,19 +15,17 @@ class KoBARTGeneration(L.LightningModule):
         self.tok = tok
         self.mode = mode
         #
-        self.pretrained_path = 'gogamza/kobart-base-v1'
+        self.pretrained_path = 'digit82/kobart-summarization'
         self.model = BartForConditionalGeneration.from_pretrained(pretrained_model_name_or_path=self.pretrained_path)
-        self.model.generate()
-        if self.mode == "fit":
+        if self.mode == 'fit':
             self.model.train()
         else:
             self.model.eval()
-
         #
         self.outputs = []
 
     @classmethod
-    def load_from_checkpoint(cls, path, config, tok, mode):
+    def load_from_checkpoint(cls, path, config, tok, mode,device):
         model = BartForConditionalGeneration.from_pretrained(config.dataset_info['pretrained_name'])
         checkpoint = torch.load(path, map_location=device)
         new_state_dict = {k.replace('model.', '', 1): v for k, v in checkpoint['state_dict'].items()}
@@ -59,9 +57,9 @@ class KoBARTGeneration(L.LightningModule):
 
     def on_validation_epoch_end(self):
         loss = torch.stack([x["val_loss"] for x in self.outputs]).mean()
-        # self.log("val_epoch_loss", loss, prog_bar=True)
+        self.log("val_epoch_loss", loss, prog_bar=True)
         self.outputs.clear()
-        return {'avg_val_loss': loss}
+
 
     def configure_optimizers(self):
         # Prepare optimizer
@@ -92,41 +90,54 @@ class KoBARTGeneration(L.LightningModule):
         print("KoBART Summary Test")
         print("## origin NEWS data: ")
         print(input_text)
+        assert input_text is not None, f'input text is None'
 
-        if input_text:
-            text = input_text.replace('\n', '')
-            raw_input_ids = self.tok.encode(text)
-            #
-            input_ids = [self.tok.bos_token_id] + raw_input_ids + [self.tok.eos_token_id]
-            #
-            input_ids = torch.tensor([input_ids])
-            summary_ids = self.model.generate(input_ids,
-                                         eos_token_id=self.tok.eos_token_id,
-                                         max_length=512,
-                                         num_beams=4)
-            output = self.tok.decode(summary_ids.squeeze().tolist(), skip_special_tokens=True)
-            print(output)
-            import json
-            with open('/storage/hjchoi/output_m.txt', 'w', encoding='UTF-8') as f:
-                    f.write(json.dumps(output, ensure_ascii=False))
+
+        text = input_text.replace('\n', '')
+        raw_input_ids = self.tok.encode(text)
+        #
+        input_ids = [self.tok.bos_token_id] + raw_input_ids + [self.tok.eos_token_id]
+        #
+        input_ids = torch.tensor([input_ids])
+        summary_ids = self.model.generate(input_ids,
+                                     eos_token_id=self.tok.eos_token_id,
+                                     max_length=512,
+                                     num_beams=4)
+        output = self.tok.decode(summary_ids.squeeze().tolist(), skip_special_tokens=True)
+        print("## Model Summary: ")
+        print(output)
+        return output
 
 
 if __name__ == '__main__':
+    import pandas as pd
     from transformers import PreTrainedTokenizerFast
     from config.config import get_config_dict
     cfg = get_config_dict()
-    tok = PreTrainedTokenizerFast.from_pretrained('gogamza/kobart-base-v1')
+    tok = PreTrainedTokenizerFast.from_pretrained('digit82/kobart-summarization')
+    # tok = PreTrainedTokenizerFast.from_pretrained('ainize/kobert-news')
     if cfg.device['gpu_id'] is not None:
         device = torch.device('cuda:{}'.format(cfg.device['gpu_id']))
         torch.cuda.set_device(cfg.device['gpu_id'])
     else:
         device = torch.device('cpu')
     #
-    chp_path = '/home/hjchoi/PycharmProjects/KoBART-for-summary/checkpoint/model_chp/magazine/epoch=00-val_loss=1.962.ckpt'
-    model = KoBARTGeneration.load_from_checkpoint(path=chp_path, config=cfg, tok=tok, mode='test')
+    test_path = '/storage/hjchoi/Document_Summary_text/Validation/news.tsv'
+    line = pd.read_csv(test_path, sep="\t")
+    input_text = line['text'][0]
+    reference = line['summary'][0]
     #
-    test_path = '/storage/hjchoi/Document_Summary_text/Inference/test.txt'
-    f = open(test_path, 'r')
-    line = f.read()
+    chp = True
+    if chp:
+        chp_path = '/home/hjchoi/PycharmProjects/KoBART-for-summary/checkpoint/model_chp/news/epoch=00-val_loss=1.367.ckpt'
+        model = KoBARTGeneration.load_from_checkpoint(path=chp_path, config=cfg, tok=tok, mode='fit')
+        model_output = model.inference(input_text)
+    else:
+        model = KoBARTGeneration(config=cfg,tok=tok, mode='fit')
+        model_output = model.inference(input_text)
     #
-    model.inference(line)
+    from rouge import Rouge
+    rouge = Rouge()
+    rouge.get_scores(model_output, reference, avg=True)
+    print(rouge.get_scores(model_output, reference, avg=True))
+

@@ -36,10 +36,11 @@ class KoBARTSummaryDataset(L.LightningDataModule):
 
         # add noise token to label_ids
         label_ids = self.add_ignored_data(label_ids)
-
-        return {'input_ids': np.array(input_ids,dtype=np.int_),
+        return {'input_ids': np.array(input_ids, dtype=np.int_),
                 'dec_input_ids': np.array(dec_input_ids, dtype=np.int_),
-                'label_ids': np.array(label_ids,dtype=np.int_)}
+                'label_ids': np.array(label_ids, dtype=np.int_)}
+
+
 
     # add_pad = [ 'A', 'B', 'C', 'D', 'E', 'F', ...'PAD', 'PAD', 'PAD']
     # len(add_pad) = self.max_len

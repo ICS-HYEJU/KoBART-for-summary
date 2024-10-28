@@ -1,6 +1,6 @@
 import torch
 import os
-
+import streamlit as st
 from transformers import PreTrainedTokenizerFast
 
 import lightning as L
@@ -31,6 +31,7 @@ class Engine():
             from model.bart import KoBARTGeneration
             tok = PreTrainedTokenizerFast.from_pretrained(self.cfg.dataset_info['pretrained_name'])
             model = KoBARTGeneration(config=self.cfg, tok=tok, mode=self.mode)
+
         else:
             raise NotImplementedError(f"The required model is not implemented yet...")
         return model.to(self.device)
@@ -68,6 +69,11 @@ class Engine():
         #     save_top_k=5,
         #     every_n_train_steps=100)
         #
+        val_acc_callback = ModelCheckpoint(
+            monitor='val_acc',
+            dirpath=self.cfg.weight_info['checkpoint'],
+            filename=self.cfg.weight_info['save_acc'],
+        )
         val_checkpoint_callback = ModelCheckpoint(
             monitor='val_loss',
             dirpath=self.cfg.weight_info['checkpoint'],
@@ -75,7 +81,7 @@ class Engine():
             mode=self.cfg.weight_info['mode'],
             verbose=True,
             save_last=True,
-            save_top_k=3,)
+            save_top_k=5,)
         return val_checkpoint_callback
 
     def start_train(self):

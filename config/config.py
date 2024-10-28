@@ -12,16 +12,13 @@ class Config(dict):
 
 def get_config_dict():
     dataset_info = dict(
-        pretrained_name='gogamza/kobart-base-v1',
-        train_file='/storage/hjchoi/Document_Summary_text/Training/law.tsv',
-        test_file='/storage/hjchoi/Document_Summary_text/Training/law.tsv',
-        batch_size=10,
+        pretrained_name='digit82/kobart-summarization', # ainize/kobert-news
+        train_file='/storage/hjchoi/Document_Summary_text/Training/nm.tsv',
+        test_file='/storage/hjchoi/Document_Summary_text/Validation/nm.tsv',
+        batch_size=2,
         max_len=512,
         max_epoch=50,
-        num_workers=4,
-    )
-    path = dict(
-        save_base_path='/home/hjchoi/PycharmProjects/KoBART-for-summary/runs',
+        num_workers=5,
     )
     model = dict(
         name='BART',
@@ -35,19 +32,21 @@ def get_config_dict():
         monitor='loss',
         interval='step',
         accelerator='gpu',
-        frequency=1,
+        frequency=1
     )
     weight_info = dict(
         mode='min',
         checkpoint='./checkpoint/',
-        save_fname='model_chp/{epoch:02d}-{val_loss:.3f}',
+        save_acc = 'model_chp/acc/news/{epoch:02d}-{val_acc:.3f}',
+        save_val='model_chp/news/{epoch:02d}-{val_loss:.3f}',
+        save_train='model_chp/news/{epoch:02d}-{train_loss:.3f}',
+        # chp_path='/home/hjchoi/PycharmProjects/KoBART-for-summary/checkpoint/last-v2.ckpt/'
     )
     device=dict(
         gpu_id=1,
     )
     config=dict(
         dataset_info=dataset_info,
-        path=path,
         model=model,
         solver=solver,
         scheduler=scheduler,

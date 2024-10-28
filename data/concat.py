@@ -11,7 +11,7 @@ def concat_file():
 
     allData = []
     for file in allFiles:
-        if file.split('/')[-1] =='magazine.tsv':
+        if file.split('/')[-1] =='law.tsv':
             continue
         df = pd.read_csv(file, sep='\t')
         allData.append(df)
