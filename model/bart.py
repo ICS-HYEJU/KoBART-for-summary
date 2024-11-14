@@ -127,7 +127,7 @@ if __name__ == '__main__':
     input_text = line['text'][0]
     reference = line['summary'][0]
     #
-    chp = True
+    chp = False
     if chp:
         chp_path = '/home/hjchoi/PycharmProjects/KoBART-for-summary/checkpoint/model_chp/news/epoch=00-val_loss=1.367.ckpt'
         model = KoBARTGeneration.load_from_checkpoint(path=chp_path, config=cfg, tok=tok, mode='fit')
