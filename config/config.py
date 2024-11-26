@@ -13,20 +13,20 @@ class Config(dict):
 def get_config_dict():
     dataset_info = dict(
         pretrained_name='digit82/kobart-summarization', # ainize/kobert-news
-        train_file='/storage/hjchoi/Document_Summary_text/Training/nm.tsv',
-        test_file='/storage/hjchoi/Document_Summary_text/Validation/nm.tsv',
-        batch_size=2,
+        train_file='/storage/hjchoi/data_dacon/train.tsv',
+        test_file='/storage/hjchoi/data_dacon/test.tsv',
+        batch_size=10,
         max_len=512,
-        max_epoch=50,
+        max_epoch=30,
         num_workers=5,
     )
     model = dict(
         name='BART',
     )
     solver = dict(
-        name='AdamW',
-        lr=3e-4,
-        gradient_clip_val=1.0
+        name='sgd',
+        lr=3e-6,
+        gradient_clip_val=5.0
     )
     scheduler = dict(
         monitor='loss',
@@ -37,7 +37,7 @@ def get_config_dict():
     weight_info = dict(
         mode='min',
         checkpoint='./checkpoint/',
-        save_acc = 'model_chp/acc/news/{epoch:02d}-{val_acc:.3f}',
+        # save_acc = 'model_chp/acc/news/{epoch:02d}-{val_acc:.3f}',
         save_val='model_chp/news/{epoch:02d}-{val_loss:.3f}',
         save_train='model_chp/news/{epoch:02d}-{train_loss:.3f}',
         # chp_path='/home/hjchoi/PycharmProjects/KoBART-for-summary/checkpoint/last-v2.ckpt/'

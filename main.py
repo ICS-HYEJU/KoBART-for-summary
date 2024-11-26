@@ -1,8 +1,9 @@
 from core.engine import Engine
-import  gc
+# from setproctitle import *
 import torch
 
 if __name__ == '__main__':
+    # setproctitle("kobart_train")
     torch.set_float32_matmul_precision('high')
 
     from config.config import get_config_dict

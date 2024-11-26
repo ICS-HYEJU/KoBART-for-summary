@@ -22,7 +22,7 @@ class KoBARTSummaryDataset(L.LightningDataModule):
         instance = self.docs.iloc[idx]
 
         # input_ids = Integer(data['news']) + Padding
-        input_ids = self.tokenizer.encode(instance['text'])
+        input_ids = self.tokenizer.encode(instance['news'])
         input_ids = self.add_padding_data(input_ids)
 
         # label_ids = Integer(data['summary']) + [EOS] token

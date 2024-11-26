@@ -6,7 +6,6 @@ from transformers import PreTrainedTokenizerFast
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-
 class Engine():
     def __init__(self, cfg, mode:str, device):
         self.cfg = cfg
@@ -22,16 +21,21 @@ class Engine():
         # ===== Model =====
         self.model = self.build_model()
 
+        # ===== Optim =====
+        self.optimizer = self.configure_optimizers()
+
         # ===== Make CheckPoint =====
         self.val_checkpoint = self.build_checkpoint()
+
 
     def build_model(self):
         name = self.cfg.model['name']
         if name == 'BART':
             from model.bart import KoBARTGeneration
             tok = PreTrainedTokenizerFast.from_pretrained(self.cfg.dataset_info['pretrained_name'])
-            model = KoBARTGeneration(config=self.cfg, tok=tok, mode=self.mode)
-
+            model = KoBARTGeneration(config=self.cfg, tok=tok)
+            model.load_from_checkpoint('/storage/hjchoi/dacon_chp/epoch=00-val_loss=1.324.ckpt'
+                                               , device=self.device)
         else:
             raise NotImplementedError(f"The required model is not implemented yet...")
         return model.to(self.device)
@@ -57,7 +61,6 @@ class Engine():
 
         return datamodule
 
-
     def build_checkpoint(self):
         # train_checkpoint_callback = ModelCheckpoint(
         #     monitor='train_loss',
@@ -69,11 +72,11 @@ class Engine():
         #     save_top_k=5,
         #     every_n_train_steps=100)
         #
-        val_acc_callback = ModelCheckpoint(
-            monitor='val_acc',
-            dirpath=self.cfg.weight_info['checkpoint'],
-            filename=self.cfg.weight_info['save_acc'],
-        )
+        # val_acc_callback = ModelCheckpoint(
+        #     monitor='val_acc',
+        #     dirpath=self.cfg.weight_info['checkpoint'],
+        #     filename=self.cfg.weight_info['save_acc'],
+        # )
         val_checkpoint_callback = ModelCheckpoint(
             monitor='val_loss',
             dirpath=self.cfg.weight_info['checkpoint'],
@@ -81,7 +84,7 @@ class Engine():
             mode=self.cfg.weight_info['mode'],
             verbose=True,
             save_last=True,
-            save_top_k=5,)
+            save_top_k=3,)
         return val_checkpoint_callback
 
     def start_train(self):
@@ -91,7 +94,11 @@ class Engine():
                             gradient_clip_val=self.cfg.solver['gradient_clip_val'],
                             callbacks=[self.val_checkpoint],
                             accumulate_grad_batches=3,
+                            log_every_n_steps=1,
+                            val_check_interval=0.1,
+                            check_val_every_n_epoch=1,
                             )
+
         if self.mode=='fit':
             trainer.fit(self.model, self.dataloader)
         elif self.mode=='test':
