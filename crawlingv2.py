@@ -51,9 +51,10 @@ def crawling_main_text(url:str):
     # MBC_NEWS
     elif ('imnews.imbc' in url) or ('mnews' in url):
         try:
-            text = soup.find('div', {'itemprop': 'articleBody'}).text
+            text = soup.find('div', {'itemprop': 'articleBody'})
             if text is None:
-                text = soup.find('div', {'id':'newsct_article'}).text
+                text = soup.find('div', {'id':'newsct_article'})
+            text = text.text
         except:
             return
 
@@ -74,7 +75,10 @@ def crawling_main_text(url:str):
     # SBS_NEWS
     elif 'news.sbs' in url:
         try:
-            text = soup.find('div', {'itemprop': 'articleBody'}).text
+            text = soup.find('div', {'itemprop': 'articleBody'})
+            if text is None:
+                text = soup.find('div', {'class':'text_area'})
+            text = text.text
         except:
             return
 

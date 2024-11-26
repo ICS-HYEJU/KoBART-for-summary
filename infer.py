@@ -219,6 +219,8 @@ elif choice == menu[3]:
                 tokenizer = PreTrainedTokenizerFast.from_pretrained('EbanLee/kobart-summary-v3')
                 for i in range(len(pair)):
                     print(pair[i])
+                    if body[i] is None:
+                        continue
                     text = body[i].replace('\n', '')
                     input_ids = tokenizer.encode(text)
                     #
